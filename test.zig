@@ -105,3 +105,79 @@ test "error" {
     const err: FileOpenError = AllocationError.OutOfMemory;
     try expect (err == FileOpenError.OutOfMemory);
 }
+
+test "error union" {
+    const maybe_err: AllocationError!u16 = 10;
+    const no_err = maybe_err catch 0;
+
+    try expect(@TypeOf(no_err) == u16);
+    try expect(no_err == 10);
+}
+
+fn failingFunction() error{Oops}! void {
+    return error.Oops;
+}
+ 
+test "returning an error" {
+    failingFunction() catch |err| {
+        try expect(err == error.Oops);
+        return;
+    };
+}
+  
+fn failFn() error{Oops}!i32 {
+    try failingFunction();
+    return 12;
+}
+ 
+test "try" {
+    var v = failFn() catch |err| {
+        try expect(err == error.Oops);
+        return;
+    };
+    try expect(v == 12);
+}
+ 
+
+var problem: u32 = 98;  
+fn failFnCounter() error {Oops}! void {
+    errdefer problem += 1;
+    try failingFunction();
+}
+
+test "errDefer" {
+    failFnCounter() catch |err| {
+        try expect(err == error.Oops);
+        try expect(problem == 99);
+        return;
+    };
+}
+ 
+fn createFile()! void {
+    return error.AccessDenied;
+}
+ 
+test "inferred error set" {
+    const x: error{AccessDenied}! void = createFile();
+    _ = x catch {};
+} 
+
+// merge error site
+const A = error{ NotDir, PathNotFound};
+const B = error{ OutOfMemory, PathNotFound};
+const C = A || B;
+
+
+test "switch statement" {
+    var x: i8 = 10;
+    switch (x) {
+        -1...1 => {
+            x = -x;
+        },
+        10...100 => {
+            x = @divExact(x, 10);
+        },
+        else => {},
+    }
+    try expect(x == 1);
+}
