@@ -336,3 +336,44 @@ test "test struct default" {
     };
     _ = my_vec;
 }
+
+const Stuff = struct {
+    x: i32,
+    y: i32,
+    fn swap(self: *Stuff) void  {
+        const tmp = self.x;
+        self.x = self.y;
+        self.y = tmp;
+    }
+}; 
+
+test "automatic dereference" {
+    var thing = Stuff{.x = 10, .y = 20};
+    thing.swap();
+    try expect(thing.x == 20);
+    try expect(thing.y == 10);
+}
+
+const Result = union {
+    int: f64,
+    float: f64,
+    bool: bool,
+}
+
+test "simple union" {
+    var result = Result{ .int = 1234 };
+    // result.float = 12.34;
+}
+
+const Tag = enum {a, b, c};
+
+const Tagged = union(Tag) {a: u8, b: f32, c: bool};
+
+test "switch on tag union" {
+    var value = Tagged{.b = 1.5};
+    switch(value) {
+        .a => |*byte| byte.* += 1,
+        .b => |*float| float.* *= 2,
+        .c => |*b| b.* = !b.*;
+    }
+} 
